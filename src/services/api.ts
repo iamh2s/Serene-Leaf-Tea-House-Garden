@@ -2,7 +2,9 @@ const API_BASE_URL =
   (import.meta as any).env?.VITE_API_BASE_URL ||
   'http://127.0.0.1:8000/api';
 
-// ========== TYPES ==========
+// =========================================================
+// TYPES
+// =========================================================
 
 export type ApiProduct = {
   id: string | number;
@@ -136,7 +138,9 @@ export type AdminLoginResponse = {
   user: AdminUser;
 };
 
-// ========== HELPERS ==========
+// =========================================================
+// HELPERS
+// =========================================================
 
 function getAuthToken(): string | null {
   return (
@@ -145,18 +149,29 @@ function getAuthToken(): string | null {
   );
 }
 
-function authHeaders(token?: string) {
+function authHeaders(token?: string): Record<string, string> {
   const t = token || getAuthToken();
-  return t ? { Authorization: `Token ${t}` } : {};
+
+  return t
+    ? {
+        Authorization: `Token ${t}`,
+      }
+    : {};
 }
 
 function normalizeList(data: any): any[] {
   if (Array.isArray(data)) return data;
-  if (data?.results && Array.isArray(data.results)) return data.results;
+
+  if (data?.results && Array.isArray(data.results)) {
+    return data.results;
+  }
+
   return [];
 }
 
-// ========== CORE FETCH ==========
+// =========================================================
+// CORE FETCH
+// =========================================================
 
 async function api<T>(
   endpoint: string,
@@ -173,6 +188,7 @@ async function api<T>(
   });
 
   let data: any = null;
+
   try {
     data = await res.json();
   } catch {
@@ -181,58 +197,91 @@ async function api<T>(
 
   if (!res.ok) {
     const err: any = new Error(
-      typeof data === 'string' ? data : JSON.stringify(data)
+      typeof data === 'string'
+        ? data
+        : JSON.stringify(data)
     );
+
     err.status = res.status;
     err.data = data;
+
     throw err;
   }
 
   return data as T;
 }
 
-// ========== ERROR HELPER ==========
+// =========================================================
+// ERROR HELPER
+// =========================================================
 
 export function getApiErrorMessage(error: unknown): string {
   const err = error as any;
 
   if (err?.data) {
-    if (typeof err.data === 'string') return err.data;
-    if (err.data.detail) return err.data.detail;
-    if (err.data.message) return err.data.message;
-    if (err.data.error) return err.data.error;
+    if (typeof err.data === 'string') {
+      return err.data;
+    }
+
+    if (err.data.detail) {
+      return err.data.detail;
+    }
+
+    if (err.data.message) {
+      return err.data.message;
+    }
+
+    if (err.data.error) {
+      return err.data.error;
+    }
 
     const messages: string[] = [];
+
     for (const key of Object.keys(err.data)) {
       const value = err.data[key];
+
       if (Array.isArray(value)) {
         messages.push(`${key}: ${value.join(', ')}`);
       } else if (typeof value === 'string') {
         messages.push(`${key}: ${value}`);
       }
     }
-    if (messages.length > 0) return messages.join(' | ');
+
+    if (messages.length > 0) {
+      return messages.join(' | ');
+    }
   }
 
-  if (err?.message) return err.message;
+  if (err?.message) {
+    return err.message;
+  }
+
   return 'Something went wrong';
 }
 
-// ========== PRODUCTS ==========
+// =========================================================
+// PRODUCTS
+// =========================================================
 
 export async function getProducts(): Promise<ApiProduct[]> {
   try {
     const data = await api<any>('/products/');
+
     return normalizeList(data);
   } catch (err) {
     console.warn('Could not fetch products:', err);
+
     return [];
   }
 }
 
-export async function getProductBySlug(slug: string): Promise<ApiProduct | null> {
+export async function getProductBySlug(
+  slug: string
+): Promise<ApiProduct | null> {
   try {
-    return await api<ApiProduct>(`/products/${slug}/`);
+    return await api<ApiProduct>(
+      `/products/${slug}/`
+    );
   } catch {
     return null;
   }
@@ -240,14 +289,19 @@ export async function getProductBySlug(slug: string): Promise<ApiProduct | null>
 
 export async function getFeaturedProducts(): Promise<ApiProduct[]> {
   try {
-    const data = await api<any>('/products/featured/');
+    const data = await api<any>(
+      '/products/featured/'
+    );
+
     return normalizeList(data);
   } catch {
     return [];
   }
 }
 
-export async function createProduct(payload: any): Promise<ApiProduct> {
+export async function createProduct(
+  payload: any
+): Promise<ApiProduct> {
   return api('/products/', {
     method: 'POST',
     headers: authHeaders(),
@@ -255,7 +309,10 @@ export async function createProduct(payload: any): Promise<ApiProduct> {
   });
 }
 
-export async function patchProduct(slug: string, body: any): Promise<ApiProduct> {
+export async function patchProduct(
+  slug: string,
+  body: any
+): Promise<ApiProduct> {
   return api(`/products/${slug}/`, {
     method: 'PATCH',
     headers: authHeaders(),
@@ -263,32 +320,41 @@ export async function patchProduct(slug: string, body: any): Promise<ApiProduct>
   });
 }
 
-export async function deleteProduct(slug: string): Promise<void> {
+export async function deleteProduct(
+  slug: string
+): Promise<void> {
   await api(`/products/${slug}/`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
 }
 
-export async function toggleStock(slug: string): Promise<ApiProduct> {
+export async function toggleStock(
+  slug: string
+): Promise<ApiProduct> {
   return api(`/products/${slug}/toggle_stock/`, {
     method: 'PATCH',
     headers: authHeaders(),
   });
 }
 
-// ========== CATEGORIES ==========
+// =========================================================
+// CATEGORIES
+// =========================================================
 
 export async function getCategories(): Promise<any[]> {
   try {
     const data = await api<any>('/categories/');
+
     return normalizeList(data);
   } catch {
     return [];
   }
 }
 
-// ========== ORDERS ==========
+// =========================================================
+// ORDERS
+// =========================================================
 
 export async function createOrder(
   payload: CreateOrderPayload
@@ -299,16 +365,27 @@ export async function createOrder(
   });
 }
 
-export async function getOrders(token?: string): Promise<ApiOrder[]> {
+export async function getOrders(
+  token?: string
+): Promise<ApiOrder[]> {
   const t = token || getAuthToken();
-  if (!t) return [];
+
+  if (!t) {
+    return [];
+  }
+
   try {
     const data = await api<any>('/orders/', {
       headers: authHeaders(t),
     });
+
     return normalizeList(data);
   } catch (err) {
-    console.warn('Could not fetch orders:', err);
+    console.warn(
+      'Could not fetch orders:',
+      err
+    );
+
     return [];
   }
 }
@@ -317,123 +394,200 @@ export async function patchOrderStatus(
   orderId: string,
   newStatus: string
 ): Promise<any> {
-  return api(`/orders/${orderId}/update_status/`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify({ status: newStatus }),
-  });
+  return api(
+    `/orders/${orderId}/update_status/`,
+    {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        status: newStatus,
+      }),
+    }
+  );
 }
 
-// alias for admin dashboard
+// Alias for admin dashboard
 export const updateOrderStatus = (
   token: string,
   orderId: string,
   status: string
 ) =>
-  api(`/orders/${orderId}/update_status/`, {
-    method: 'PATCH',
-    headers: authHeaders(token),
-    body: JSON.stringify({ status }),
-  });
+  api(
+    `/orders/${orderId}/update_status/`,
+    {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        status,
+      }),
+    }
+  );
 
-// ========== RAZORPAY ==========
+// =========================================================
+// RAZORPAY
+// =========================================================
 
 export async function createRzpOrder(
   amount: number
 ): Promise<RazorpayOrderResponse> {
-  return api<RazorpayOrderResponse>('/payment/create-order/', {
-    method: 'POST',
-    body: JSON.stringify({
-      amount,
-      currency: 'INR',
-      receipt: `receipt_${Date.now()}`,
-    }),
-  });
+  return api<RazorpayOrderResponse>(
+    '/payment/create-order/',
+    {
+      method: 'POST',
+
+      // IMPORTANT:
+      // Send authentication token
+      headers: authHeaders(),
+
+      body: JSON.stringify({
+        amount,
+        currency: 'INR',
+        receipt: `receipt_${Date.now()}`,
+      }),
+    }
+  );
 }
 
 export async function verifyPayment(
   payload: VerifyPaymentPayload
 ): Promise<any> {
-  return api('/payment/verify/', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  return api(
+    '/payment/verify/',
+    {
+      method: 'POST',
+
+      // IMPORTANT:
+      // Send authentication token
+      headers: authHeaders(),
+
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
-// ========== CONTACT MESSAGES ==========
+// =========================================================
+// CONTACT MESSAGES
+// =========================================================
 
 export async function postContact(
   payload: ContactMessagePayload
 ): Promise<ApiMessage> {
-  return api<ApiMessage>('/contact/', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+  return api<ApiMessage>(
+    '/contact/',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 // Alias used by ContactPage
 export const sendContactMessage = postContact;
 
-export async function getMessages(token?: string): Promise<ApiMessage[]> {
+export async function getMessages(
+  token?: string
+): Promise<ApiMessage[]> {
   const t = token || getAuthToken();
-  if (!t) return [];
+
+  if (!t) {
+    return [];
+  }
+
   try {
-    const data = await api<any>('/admin/messages/', {
-      headers: authHeaders(t),
-    });
+    const data = await api<any>(
+      '/admin/messages/',
+      {
+        headers: authHeaders(t),
+      }
+    );
+
     return normalizeList(data);
   } catch (err) {
-    console.warn('Could not fetch messages:', err);
+    console.warn(
+      'Could not fetch messages:',
+      err
+    );
+
     return [];
   }
 }
 
 export async function patchMessage(
   messageId: number,
-  updates: { is_read?: boolean; is_closed?: boolean; admin_note?: string }
+  updates: {
+    is_read?: boolean;
+    is_closed?: boolean;
+    admin_note?: string;
+  }
 ): Promise<any> {
-  return api(`/admin/messages/${messageId}/`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify(updates),
-  });
+  return api(
+    `/admin/messages/${messageId}/`,
+    {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify(updates),
+    }
+  );
 }
 
-// alias
+// Alias
 export const updateMessageStatus = (
   token: string,
   messageId: number,
-  updates: { is_read?: boolean; is_closed?: boolean; admin_note?: string }
+  updates: {
+    is_read?: boolean;
+    is_closed?: boolean;
+    admin_note?: string;
+  }
 ) =>
-  api(`/admin/messages/${messageId}/`, {
-    method: 'PATCH',
-    headers: authHeaders(token),
-    body: JSON.stringify(updates),
-  });
+  api(
+    `/admin/messages/${messageId}/`,
+    {
+      method: 'PATCH',
+      headers: authHeaders(token),
+      body: JSON.stringify(updates),
+    }
+  );
 
-// ========== REVIEWS ==========
+// =========================================================
+// REVIEWS
+// =========================================================
 
-export async function getReviews(productSlug?: string): Promise<any[]> {
+export async function getReviews(
+  productSlug?: string
+): Promise<any[]> {
   try {
     const endpoint = productSlug
-      ? `/reviews/?product=${encodeURIComponent(productSlug)}`
+      ? `/reviews/?product=${encodeURIComponent(
+          productSlug
+        )}`
       : '/reviews/';
+
     const data = await api<any>(endpoint);
+
     return normalizeList(data);
   } catch (err) {
-    console.warn('Could not fetch reviews:', err);
+    console.warn(
+      'Could not fetch reviews:',
+      err
+    );
+
     return [];
   }
 }
 
-export async function createReview(payload: ReviewPayload): Promise<any> {
+export async function createReview(
+  payload: ReviewPayload
+): Promise<any> {
   return api('/reviews/', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 }
 
-// ========== ADMIN AUTH ==========
+// =========================================================
+// ADMIN AUTH
+// =========================================================
 
 export async function adminLogin(
   payload: AdminLoginPayload
@@ -444,38 +598,54 @@ export async function adminLogin(
   });
 }
 
-export async function adminLogout(token?: string): Promise<any> {
+export async function adminLogout(
+  token?: string
+): Promise<any> {
   return api('/admin/logout/', {
     method: 'POST',
     headers: authHeaders(token),
   });
 }
 
-// ========== ADMIN DASHBOARD ==========
+// =========================================================
+// ADMIN DASHBOARD
+// =========================================================
 
-export async function getDashboardStats(token?: string): Promise<any> {
+export async function getDashboardStats(
+  token?: string
+): Promise<any> {
   return api('/admin/dashboard/', {
     method: 'GET',
     headers: authHeaders(token),
   });
 }
 
-export async function getCustomers(token?: string): Promise<any[]> {
+export async function getCustomers(
+  token?: string
+): Promise<any[]> {
   try {
-    const data = await api<any>('/admin/customers/', {
-      method: 'GET',
-      headers: authHeaders(token),
-    });
+    const data = await api<any>(
+      '/admin/customers/',
+      {
+        method: 'GET',
+        headers: authHeaders(token),
+      }
+    );
+
     return normalizeList(data);
   } catch {
     return [];
   }
 }
 
-export async function getAdminMessages(token?: string): Promise<ApiMessage[]> {
+export async function getAdminMessages(
+  token?: string
+): Promise<ApiMessage[]> {
   return getMessages(token);
 }
 
-export async function getAllOrders(token?: string): Promise<ApiOrder[]> {
+export async function getAllOrders(
+  token?: string
+): Promise<ApiOrder[]> {
   return getOrders(token);
 }
